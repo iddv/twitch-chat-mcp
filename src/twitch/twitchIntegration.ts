@@ -26,15 +26,15 @@ export async function setupTwitchIntegration(): Promise<TwitchClient> {
   const token = process.env.TWITCH_OAUTH_TOKEN || '';
   const channels = process.env.TWITCH_CHANNELS?.split(',') || [];
   
-  if (!username || !token) {
-    throw new Error('Missing Twitch credentials. Please set TWITCH_USERNAME and TWITCH_OAUTH_TOKEN.');
+  if (!token) {
+    throw new Error('Missing Twitch OAuth token. Please authenticate with Twitch first.');
   }
 
   // Create TMI client
   const client = new tmi.Client({
     options: { debug: process.env.NODE_ENV === 'development' },
     identity: {
-      username,
+      username: username || 'justinfan12345', // Use anonymous login if no username provided
       password: token
     },
     channels
@@ -47,6 +47,23 @@ export async function setupTwitchIntegration(): Promise<TwitchClient> {
   try {
     await client.connect();
     logger.info('Connected to Twitch', { channels });
+
+    // If we're using anonymous login but got a valid token, attempt to get username from Twitch
+    if (!username && token) {
+      try {
+        // The tmi.js client will update its own username on successful auth
+        // We should store it in the env var for persistence
+        if (client.getUsername) {
+          const connectedUsername = client.getUsername();
+          if (connectedUsername && connectedUsername !== 'justinfan12345') {
+            process.env.TWITCH_USERNAME = connectedUsername;
+            logger.info(`Updated username from Twitch: ${connectedUsername}`);
+          }
+        }
+      } catch (error) {
+        logger.warn('Could not determine username from token', { error });
+      }
+    }
 
     // Listen for messages
     client.on('message', (channel, tags, message, self) => {

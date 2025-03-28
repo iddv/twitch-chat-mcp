@@ -27,7 +27,7 @@ interface ChatObservationResponse {
 /**
  * Registers tool routes for Claude to use
  */
-export function registerToolRoutes(app: Express, twitchClient: TwitchClient) {
+export function registerToolRoutes(app: Express, twitchClient: TwitchClient | null) {
   // Tool definition endpoint
   app.get('/tools/definitions', (req: Request, res: Response) => {
     const toolDefinitions = [
@@ -83,6 +83,14 @@ export function registerToolRoutes(app: Express, twitchClient: TwitchClient) {
       
       if (!parameters) {
         return res.status(400).json({ error: 'Missing tool parameters' });
+      }
+      
+      // Check if Twitch client is available
+      if (!twitchClient) {
+        return res.status(401).json({ 
+          error: 'Not authenticated with Twitch', 
+          auth_url: '/auth/twitch/login'
+        });
       }
       
       switch (name) {

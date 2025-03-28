@@ -5,7 +5,7 @@ A Message Control Protocol (MCP) server that connects Claude desktop with Twitch
 ## Features
 
 - Connect with Claude desktop via HTTP API
-- Authenticate with Twitch API
+- Authenticate with Twitch API (browser-based OAuth flow)
 - Observe Twitch chat in specified channels
 - Send messages to Twitch chat
 - Parse user queries to determine relevant Twitch channels
@@ -24,31 +24,67 @@ A Message Control Protocol (MCP) server that connects Claude desktop with Twitch
   - `tools/` - Tool definitions for Claude
 - `tests/` - Test suite
 - `config/` - Configuration files
+- `public/` - Web UI for authentication
 - `llm/` - LLM-related files
   - `seed_prompt.md` - Original development prompt
 
 ## Setup
 
-1. Install dependencies:
+1. Create a Twitch application in the [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+   - Set the OAuth Redirect URL to `http://localhost:3000/auth/twitch/callback`
+   - Note your Client ID
+
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-2. Copy the example environment file and fill in your Twitch credentials:
+3. Copy the example environment file and fill in your Twitch app details:
    ```bash
    cp .env.example .env
    ```
    
-   Then edit `.env` with your Twitch username and OAuth token.
+   Then edit `.env` with at least your Twitch Client ID:
+   ```
+   TWITCH_CLIENT_ID=your_client_id_from_twitch_dev_console
+   ```
 
-3. Build the project:
+4. Build the project:
    ```bash
    npm run build
    ```
 
-4. Start the server:
+5. Start the server:
    ```bash
    npm start
+   ```
+
+6. Open your browser and go to `http://localhost:3000`
+
+7. Click "Login with Twitch" to authenticate the application
+
+## Authentication
+
+The application supports two ways to authenticate with Twitch:
+
+### 1. Browser-based OAuth Flow (Recommended)
+
+1. Start the server
+2. Visit `http://localhost:3000` in your browser
+3. Click "Login with Twitch"
+4. Follow the Twitch authentication process
+5. After successful authentication, the token will be stored in the session
+
+### 2. Manual Token Configuration
+
+If you prefer to set up manually:
+
+1. Get an OAuth token from [Twitch Token Generator](https://twitchtokengenerator.com/)
+   - Make sure to request `chat:read` and `chat:write` scopes
+2. Add the token to your `.env` file:
+   ```
+   TWITCH_OAUTH_TOKEN=oauth:your_token_here
+   TWITCH_USERNAME=your_bot_username
    ```
 
 ## Development
@@ -69,6 +105,14 @@ npm test
 ```
 
 ## API Endpoints
+
+### Authentication
+
+```
+GET /auth/twitch/login     # Redirects to Twitch for authorization
+GET /auth/twitch/status    # Returns current authentication status
+GET /auth/twitch/logout    # Logs out and clears the session
+```
 
 ### Tool Definitions
 
