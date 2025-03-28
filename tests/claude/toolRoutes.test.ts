@@ -21,10 +21,14 @@ describe('Tool Routes', () => {
   let mockResponse: Partial<Response>;
   
   beforeEach(() => {
-    // Create mock app
+    // Create mock app with jest functions
     mockApp = {
-      get: jest.fn(),
-      post: jest.fn()
+      get: jest.fn().mockImplementation((path, handler) => {
+        return mockApp;
+      }),
+      post: jest.fn().mockImplementation((path, handler) => {
+        return mockApp;
+      })
     };
     
     // Create mock messages
@@ -67,11 +71,11 @@ describe('Tool Routes', () => {
     // Register routes
     registerToolRoutes(mockApp as Express, mockTwitchClient as TwitchClient);
     
-    // Get the route handler
-    const handler = mockApp.get.mock.calls[0][1];
+    // Get the handler function directly
+    const getHandler = (mockApp.get as jest.Mock).mock.calls[0][1];
     
     // Call the handler
-    handler(mockRequest as Request, mockResponse as Response);
+    getHandler(mockRequest as Request, mockResponse as Response);
     
     // Verify response
     expect(mockResponse.status).toHaveBeenCalledWith(200);
