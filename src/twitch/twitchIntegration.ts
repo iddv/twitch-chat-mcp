@@ -24,18 +24,21 @@ export async function setupTwitchIntegration(): Promise<TwitchClient> {
   // Get configuration from environment
   const username = process.env.TWITCH_USERNAME || '';
   const token = process.env.TWITCH_OAUTH_TOKEN || '';
-  const channels = process.env.TWITCH_CHANNELS?.split(',') || [];
+  const channels = process.env.TWITCH_CHANNELS?.split(',').filter(Boolean) || [];
   
   if (!token) {
     throw new Error('Missing Twitch OAuth token. Please authenticate with Twitch first.');
   }
+
+  // Ensure token has oauth: prefix
+  const formattedToken = token.startsWith('oauth:') ? token : `oauth:${token}`;
 
   // Create TMI client
   const client = new tmi.Client({
     options: { debug: process.env.NODE_ENV === 'development' },
     identity: {
       username: username || 'justinfan12345', // Use anonymous login if no username provided
-      password: token
+      password: formattedToken
     },
     channels
   }) as TwitchClient;

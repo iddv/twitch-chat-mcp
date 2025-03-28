@@ -100,7 +100,7 @@ export function createTwitchAuthRouter() {
             .then(response => response.json())
             .then(data => {
               if (data.success) {
-                statusDiv.innerHTML = '<p class="success">Authentication complete! You can close this window.</p>';
+                statusDiv.innerHTML = '<p class="success">Authentication complete! Redirecting...</p>';
                 setTimeout(() => {
                   window.location.href = '/';
                 }, 2000);
@@ -140,14 +140,15 @@ export function createTwitchAuthRouter() {
       return res.status(400).json({ success: false, error: 'Missing access token' });
     }
     
-    // Store in session
+    // Store in session if available
     if (req.session) {
       req.session.twitchToken = access_token;
       req.session.authenticated = true;
     }
     
     // Store in environment for application use
-    process.env.TWITCH_OAUTH_TOKEN = `oauth:${access_token}`;
+    const formattedToken = access_token.startsWith('oauth:') ? access_token : `oauth:${access_token}`;
+    process.env.TWITCH_OAUTH_TOKEN = formattedToken;
     
     logger.info('Successfully stored Twitch authentication token');
     res.json({ success: true });
@@ -155,7 +156,9 @@ export function createTwitchAuthRouter() {
 
   // Status endpoint to check if authenticated
   router.get('/status', (req, res) => {
-    const isAuthenticated = !!(req.session && req.session.authenticated);
+    const isAuthenticated = !!(process.env.TWITCH_OAUTH_TOKEN || 
+      (req.session && req.session.authenticated));
+      
     res.json({ 
       authenticated: isAuthenticated,
       username: process.env.TWITCH_USERNAME || null

@@ -1,6 +1,7 @@
 import express from 'express';
 import session from 'express-session';
 import path from 'path';
+import open from 'open';
 import { setupLogger } from '../utils/logger';
 import { setupTwitchIntegration } from '../twitch/twitchIntegration';
 import { registerToolRoutes } from '../claude/toolRoutes';
@@ -14,9 +15,13 @@ const logger = setupLogger();
 export async function createServer() {
   const app = express();
 
+  // Generate a random session secret if not provided
+  const sessionSecret = process.env.SESSION_SECRET || 
+    require('crypto').randomBytes(32).toString('hex');
+
   // Session middleware
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'twitch-chat-mcp-secret',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -42,27 +47,24 @@ export async function createServer() {
     res.sendFile(path.join(__dirname, '../../public/index.html'));
   });
 
-  // Initialize Twitch integration
-  try {
-    // Get token either from session or env vars
-    const twitchToken = process.env.TWITCH_OAUTH_TOKEN;
-    
-    // Only set up Twitch if we have a token
-    let twitchClient = null;
-    if (twitchToken) {
+  // Initialize Twitch integration only if we have a token
+  const twitchToken = process.env.TWITCH_OAUTH_TOKEN;
+  let twitchClient = null;
+  
+  if (twitchToken) {
+    try {
       twitchClient = await setupTwitchIntegration();
-      
-      // Register Claude tool routes
-      registerToolRoutes(app, twitchClient);
-      
       logger.info('MCP server configured successfully with Twitch integration');
-    } else {
-      logger.info('MCP server started without Twitch integration - auth required');
+    } catch (error) {
+      logger.error('Failed to configure Twitch integration', { error });
+      // Continue without Twitch integration
     }
-  } catch (error) {
-    logger.error('Failed to configure MCP server', { error });
-    throw error;
+  } else {
+    logger.info('MCP server started without Twitch integration - auth required');
   }
+  
+  // Register Claude tool routes (will handle null twitchClient)
+  registerToolRoutes(app, twitchClient);
 
   return app;
 } 
