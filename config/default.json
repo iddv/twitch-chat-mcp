@@ -1,0 +1,19 @@
+{
+  "server": {
+    "port": 3000,
+    "host": "localhost"
+  },
+  "twitch": {
+    "username": "",
+    "oauth_token": "",
+    "channels": [],
+    "default_observation_duration": 60000,
+    "rate_limit": {
+      "messages_per_second": 0.5
+    }
+  },
+  "logging": {
+    "level": "info",
+    "file": "logs/mcp-server.log"
+  }
+} 
