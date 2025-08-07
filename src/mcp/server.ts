@@ -1,59 +1,43 @@
-import express from 'express';
-import session from 'express-session';
-import path from 'path';
-import open from 'open';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { setupLogger } from '../utils/logger';
 import { setupTwitchIntegration } from '../twitch/twitchIntegration';
-import { registerToolRoutes } from '../claude/toolRoutes';
-import { createTwitchAuthRouter } from '../twitch/auth';
+import { setupStreamResources } from './resources';
+import { setupChatResources } from './chatResources';
+import { setupStreamTools } from './tools';
+import { setupStreamPrompts } from './prompts';
 
 const logger = setupLogger();
 
 /**
  * Creates and configures the MCP server
  */
-export async function createServer() {
-  const app = express();
-
-  // Generate a random session secret if not provided
-  const sessionSecret = process.env.SESSION_SECRET || 
-    require('crypto').randomBytes(32).toString('hex');
-
-  // Session middleware
-  app.use(session({
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+export async function createMCPServer() {
+  // Create MCP server instance
+  const server = new Server(
+    {
+      name: 'twitch-mcp-server',
+      version: '0.1.0',
+    },
+    {
+      capabilities: {
+        resources: {},
+        tools: {},
+        prompts: {},
+        logging: {},
+      },
     }
-  }));
+  );
 
-  // Middleware
-  app.use(express.json());
-  app.use(express.static(path.join(__dirname, '../../public')));
-  
-  // Basic health check endpoint
-  app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok' });
-  });
-
-  // Set up Twitch auth routes
-  app.use('/auth/twitch', createTwitchAuthRouter());
-
-  // Home page with auth status
-  app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../public/index.html'));
-  });
-
-  // Initialize Twitch integration only if we have a token
-  const twitchToken = process.env.TWITCH_OAUTH_TOKEN;
+  // Initialize Twitch integration
+  let twitchAPIClient = null;
   let twitchClient = null;
+  const twitchToken = process.env.TWITCH_OAUTH_TOKEN;
   
   if (twitchToken) {
     try {
       twitchClient = await setupTwitchIntegration();
+      twitchAPIClient = twitchClient.apiClient;
       logger.info('MCP server configured successfully with Twitch integration');
     } catch (error) {
       logger.error('Failed to configure Twitch integration', { error });
@@ -62,9 +46,68 @@ export async function createServer() {
   } else {
     logger.info('MCP server started without Twitch integration - auth required');
   }
-  
-  // Register Claude tool routes (will handle null twitchClient)
-  registerToolRoutes(app, twitchClient);
 
-  return app;
+  // Setup MCP components
+  setupStreamResources(server, twitchAPIClient);
+  setupChatResources(server, twitchClient);
+  setupStreamTools(server, twitchAPIClient, twitchClient);
+  setupStreamPrompts(server, twitchAPIClient);
+
+  // Error handling
+  server.onerror = (error) => {
+    logger.error('MCP Server error', { error });
+  };
+
+  // Graceful shutdown handling
+  const shutdown = async (signal: string) => {
+    logger.info(`Received ${signal}, shutting down MCP server gracefully...`);
+    
+    try {
+      // Stop all monitoring sessions and cleanup resources
+      const { cleanup } = await import('./resources');
+      const { cleanupChatResources } = await import('./chatResources');
+      
+      cleanup();
+      cleanupChatResources();
+      
+      // Close the MCP server
+      await server.close();
+      logger.info('MCP server shutdown complete');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during shutdown', { error });
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  
+  // Handle uncaught exceptions and unhandled rejections
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught exception', { error });
+    shutdown('uncaughtException');
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled rejection', { reason, promise });
+    shutdown('unhandledRejection');
+  });
+
+  return server;
+}
+
+/**
+ * Start the MCP server with stdio transport
+ */
+export async function startMCPServer() {
+  const server = await createMCPServer();
+  const transport = new StdioServerTransport();
+  
+  logger.info('Starting MCP server with stdio transport');
+  
+  await server.connect(transport);
+  logger.info('MCP server connected and ready');
+  
+  return server;
 } 

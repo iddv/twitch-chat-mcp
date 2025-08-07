@@ -1,4 +1,4 @@
-import { ChatMessage, TwitchClient } from '../../src/twitch/twitchIntegration';
+import { ChatMessage, TwitchClient } from '@/twitch/twitchIntegration';
 
 // Mock TMI.js client
 jest.mock('tmi.js', () => {

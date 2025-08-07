@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
-import { TwitchClient, ChatMessage } from '../twitch/twitchIntegration';
-import { setupLogger } from '../utils/logger';
+import { TwitchClient, ChatMessage } from '@/twitch/twitchIntegration';
+import { setupLogger } from '@/utils/logger';
 
 const logger = setupLogger();
 
@@ -29,7 +29,7 @@ interface ChatObservationResponse {
  */
 export function registerToolRoutes(app: Express, twitchClient: TwitchClient | null) {
   // Tool definition endpoint
-  app.get('/tools/definitions', (req: Request, res: Response) => {
+  app.get('/tools/definitions', (_req: Request, res: Response) => {
     const toolDefinitions = [
       {
         name: 'observe_twitch_chat',

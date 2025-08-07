@@ -39,4 +39,7 @@ export function setupLogger() {
   });
 
   return logger;
-} 
+}
+
+// Export logger instance
+export const logger = setupLogger(); 

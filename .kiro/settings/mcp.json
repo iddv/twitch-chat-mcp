@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "twitch-mcp": {
+      "command": "node",
+      "args": ["/home/iddv/workspace/twitch-chat-mcp/dist/src/index.js"],
+      "env": {
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "info"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "start_stream_monitoring",
+        "get_stream_info_persistent",
+        "get_channel_info_persistent",
+        "observe_twitch_chat_streaming",
+        "detect_chat_commands"
+      ]
+    }
+  }
+}

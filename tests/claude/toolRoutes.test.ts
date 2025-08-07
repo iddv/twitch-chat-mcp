@@ -1,6 +1,6 @@
 import { Express, Request, Response } from 'express';
-import { TwitchClient, ChatMessage } from '../../src/twitch/twitchIntegration';
-import { registerToolRoutes } from '../../src/claude/toolRoutes';
+import { TwitchClient, ChatMessage } from '@/twitch/twitchIntegration';
+import { registerToolRoutes } from '@/claude/toolRoutes';
 
 // Mock express
 jest.mock('express', () => {
@@ -23,10 +23,10 @@ describe('Tool Routes', () => {
   beforeEach(() => {
     // Create mock app with jest functions
     mockApp = {
-      get: jest.fn().mockImplementation((path, handler) => {
+      get: jest.fn().mockImplementation((_path, _handler) => {
         return mockApp;
       }),
-      post: jest.fn().mockImplementation((path, handler) => {
+      post: jest.fn().mockImplementation((_path, _handler) => {
         return mockApp;
       })
     };

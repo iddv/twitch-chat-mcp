@@ -1,7 +1,14 @@
 import { Router } from 'express';
-import { setupLogger } from '../utils/logger';
+import { setupLogger } from '@/utils/logger';
 import crypto from 'crypto';
-import session from 'express-session';
+
+// Extend session data interface
+declare module 'express-session' {
+  interface SessionData {
+    twitchToken?: string;
+    authenticated?: boolean;
+  }
+}
 
 const logger = setupLogger();
 
@@ -22,7 +29,7 @@ export function createTwitchAuthRouter() {
   }
 
   // Login endpoint - redirects to Twitch for authorization
-  router.get('/login', (req, res) => {
+  router.get('/login', (_req, res) => {
     // Generate random state for CSRF protection
     const state = crypto.randomBytes(16).toString('hex');
     
@@ -47,7 +54,7 @@ export function createTwitchAuthRouter() {
   });
 
   // Callback page that will receive the token via the hash fragment
-  router.get('/callback', (req, res) => {
+  router.get('/callback', (_req, res) => {
     // Serve a simple HTML page that extracts the token from URL hash
     // and sends it back to the server
     res.send(`
@@ -151,7 +158,7 @@ export function createTwitchAuthRouter() {
     process.env.TWITCH_OAUTH_TOKEN = formattedToken;
     
     logger.info('Successfully stored Twitch authentication token');
-    res.json({ success: true });
+    return res.json({ success: true });
   });
 
   // Status endpoint to check if authenticated
