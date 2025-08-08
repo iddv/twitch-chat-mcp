@@ -2,7 +2,7 @@
 
 export interface OAuthConfig {
   clientId: string;
-  clientSecret: string;
+  clientSecret?: string; // Optional for implicit flow
   redirectUri: string;
   scopes: string[];
 }

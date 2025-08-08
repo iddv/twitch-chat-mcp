@@ -2,10 +2,15 @@
   "mcpServers": {
     "twitch-mcp": {
       "command": "node",
-      "args": ["/home/iddv/workspace/twitch-chat-mcp/dist/src/index.js"],
+      "args": [
+        "/home/iddv/workspace/twitch-chat-mcp/dist/src/index.js"
+      ],
       "env": {
         "NODE_ENV": "production",
-        "LOG_LEVEL": "info"
+        "LOG_LEVEL": "info",
+        "TWITCH_CLIENT_ID": "gp762nuuoqcoxypju8c569th9wz7q5",
+        "TWITCH_OAUTH_TOKEN": "6ov5z5obh54ihk14h20bsbf97noitf",
+        "PORT": "3001"
       },
       "disabled": false,
       "autoApprove": [

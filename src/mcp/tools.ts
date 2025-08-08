@@ -409,6 +409,21 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
           },
           required: ["channel"]
         }
+      },
+      {
+        name: "authenticate_twitch",
+        description: "Start Twitch OAuth authentication flow to enable full API access",
+        inputSchema: {
+          type: "object",
+          properties: {
+            openBrowser: {
+              type: "boolean",
+              description: "Whether to automatically open browser for authentication (default: true)",
+              default: true
+            }
+          },
+          required: []
+        }
       }
     ];
 
@@ -468,6 +483,9 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
           
         case "monitor_stream_persistent":
           return await handleMonitorStreamPersistent(server, args, twitchAPIClient);
+          
+        case "authenticate_twitch":
+          return await handleAuthenticateTwitch(server, args);
           
         default:
           throw new Error(`Unknown tool: ${name}`);
@@ -1471,6 +1489,98 @@ async function handleMonitorStreamPersistent(server: Server, args: any, twitchAP
         startedAt: new Date().toISOString(),
         persistent: true,
         note: "Monitor will continue running and survive server restarts"
+      }, null, 2)
+    }]
+  };
+}
+
+/**
+ * Handle authenticate twitch tool - Simplified approach
+ */
+async function handleAuthenticateTwitch(server: Server, args: any) {
+  const { openBrowser = true } = args;
+  
+  const clientId = process.env.TWITCH_CLIENT_ID || '';
+  const existingToken = process.env.TWITCH_OAUTH_TOKEN;
+  
+  if (!clientId) {
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify({
+          success: false,
+          message: "TWITCH_CLIENT_ID not configured",
+          instructions: "Please set TWITCH_CLIENT_ID in your MCP configuration",
+          timestamp: new Date().toISOString()
+        }, null, 2)
+      }]
+    };
+  }
+  
+  if (existingToken) {
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify({
+          success: true,
+          message: "Twitch token already configured!",
+          note: "You should be able to use all Twitch API features",
+          timestamp: new Date().toISOString()
+        }, null, 2)
+      }]
+    };
+  }
+  
+  // Generate the official Twitch OAuth URL using Implicit Grant Flow
+  const scopes = ['chat:read', 'chat:edit', 'channel:read:subscriptions', 'moderator:read:followers'];
+  const redirectUri = 'https://twitchtokengenerator.com'; // Safe redirect that shows the token
+  const officialAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${scopes.join('%20')}`;
+  
+  // Alternative: Direct token generator (easier for users)
+  const quickUrl = `https://twitchtokengenerator.com/quick/${clientId}`;
+  
+  if (openBrowser) {
+    try {
+      const { default: open } = await import('open');
+      await open(quickUrl); // Use the easier option
+      logger.info('Opened Twitch authentication in browser');
+    } catch (error) {
+      logger.warn('Could not open browser automatically');
+    }
+  }
+  
+  return {
+    content: [{
+      type: "text",
+      text: JSON.stringify({
+        success: true,
+        message: "🎮 Twitch Authentication Setup",
+        method: "Implicit Grant Flow (Recommended)",
+        instructions: [
+          "1. 🌐 Visit the Quick URL below (browser should open automatically)",
+          "2. 🔐 Log in to Twitch and authorize the application", 
+          "3. 📋 Copy the generated token (starts with 'oauth:')",
+          "4. ⚙️  Add TWITCH_OAUTH_TOKEN to your MCP configuration",
+          "5. 🔄 Restart the MCP server in Kiro"
+        ],
+        urls: {
+          quick: quickUrl,
+          official: officialAuthUrl,
+          recommended: "Use the 'quick' URL for easiest setup"
+        },
+        requiredScopes: scopes,
+        configExample: {
+          file: ".kiro/settings/mcp.json",
+          addToEnvSection: {
+            "TWITCH_OAUTH_TOKEN": "oauth:your_token_from_step_3"
+          }
+        },
+        troubleshooting: {
+          tokenFormat: "Token must start with 'oauth:' - if it doesn't, add 'oauth:' prefix",
+          scopeIssues: "Make sure all required scopes are granted during authorization",
+          restartRequired: "MCP server must be restarted after adding the token"
+        },
+        timestamp: new Date().toISOString()
       }, null, 2)
     }]
   };

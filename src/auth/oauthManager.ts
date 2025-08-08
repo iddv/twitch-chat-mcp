@@ -1,6 +1,5 @@
 import express from 'express';
 import { Server } from 'http';
-import open from 'open';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuthConfig, TwitchTokens, OAuthTokenResponse, AuthenticationError, TokenValidationResult } from '../types';
@@ -170,10 +169,15 @@ export class OAuthManager {
     logger.debug('Auth URL:', authUrl.toString());
 
     try {
+      const { default: open } = await import('open');
       await open(authUrl.toString());
+      logger.info('Browser opened for authentication');
     } catch (error) {
-      logger.error('Failed to open browser:', error);
-      throw new Error(`Failed to open browser for authentication: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.warn('Could not automatically open browser, please visit the URL manually:', { 
+        authUrl: authUrl.toString(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      // Don't throw error, just continue - user can open URL manually
     }
   }
 
