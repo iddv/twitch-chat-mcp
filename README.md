@@ -5,28 +5,28 @@ A Model Context Protocol (MCP) server that connects MCP Clients, like Claude Des
 ## Available Tools
 
 ### 🎮 Stream Information & Monitoring
-`start_stream_monitoring` - Start real-time monitoring of a Twitch stream with automatic updates
-`stop_stream_monitoring` - Stop real-time monitoring of a Twitch stream
-`get_stream_info_persistent` - Get stream information with resource links for continuous monitoring
-`get_channel_info_persistent` - Get channel information with durable caching and progress updates
-`create_stream_link` - Create a persistent resource link for long-term stream access
-`monitor_stream_persisten`t - Create persistent monitoring tools that survive server restarts
-`get_monitoring_status` - Get the current status of all stream monitoring sessions
+ - `start_stream_monitoring` - Start real-time monitoring of a Twitch stream with automatic updates
+ - `stop_stream_monitoring` - Stop real-time monitoring of a Twitch stream
+ - `get_stream_info_persistent` - Get stream information with resource links for continuous monitoring
+ - `get_channel_info_persistent` - Get channel information with durable caching and progress updates
+ - `create_stream_link` - Create a persistent resource link for long-term stream access
+ - `monitor_stream_persisten`t - Create persistent monitoring tools that survive server restarts
+ - `get_monitoring_status` - Get the current status of all stream monitoring sessions
 
-###💬 Chat Interaction & Analysis
-`observe_twitch_chat_streaming` - Observe Twitch chat with real-time progress streaming and resumability
-`send_twitch_message_with_confirmation` - Send a message to Twitch chat with user confirmation via elicitation
-`detect_chat_commands` - Detect and analyze chat commands with AI-powered response generation
-`start_chat_recording` - Start recording chat messages for a channel with persistent storage
-`stop_chat_recording` - Stop recording chat messages for a channel
-`create_chat_history_link` - Create a persistent link for chat history with analytics
-`start_chat_analytics` - Start processing chat analytics for a channel and timeframe
+### 💬 Chat Interaction & Analysis
+ - `observe_twitch_chat_streaming` - Observe Twitch chat with real-time progress streaming and resumability
+ - `send_twitch_message_with_confirmation` - Send a message to Twitch chat with user confirmation via elicitation
+ - `detect_chat_commands` - Detect and analyze chat commands with AI-powered response generation
+ - `start_chat_recording` - Start recording chat messages for a channel with persistent storage
+ - `stop_chat_recording` - Stop recording chat messages for a channel
+ - `create_chat_history_link` - Create a persistent link for chat history with analytics
+ - `start_chat_analytics` - Start processing chat analytics for a channel and timeframe
 
 ### 👥 Community & Moderation
-`moderate_chat_with_approval` - Multi-turn moderation workflow with user approval for actions
-`get_followers_batch` - Retrieve followers with resumable batch processing
+ - `moderate_chat_with_approval` - Multi-turn moderation workflow with user approval for actions
+ - `get_followers_batch` - Retrieve followers with resumable batch processing
 
-###🔐 Authentication & Setup
+### 🔐 Authentication & Setup
 authenticate_twitch - Start Twitch OAuth authentication flow to enable full API access
 
 ## 🚀 Status
@@ -40,12 +40,6 @@ authenticate_twitch - Start Twitch OAuth authentication flow to enable full API 
 - ✅ **Session Management**: Persistent state, resume tokens, resource links
 - ✅ **MCP Integration**: Full protocol compliance with Kiro/Claude Desktop
 - ✅ **OAuth Authentication**: One-time manual setup working perfectly
-
-**🧪 Live Testing Results**:
-- **Stream**: odpixel (Dota 2, 617 viewers) ✅
-- **Chat Messages**: Successfully captured live chat ✅  
-- **API Integration**: Real Twitch API data ✅
-- **Tools**: All enhanced MCP tools functional ✅
 
 **Quick Start**: Follow the setup guide below to get your own Twitch token!
 
