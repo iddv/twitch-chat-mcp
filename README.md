@@ -56,7 +56,7 @@ A Model Context Protocol (MCP) server that connects MCP Clients, like Claude Des
 
 ### 2. Configure MCP Server
 
-Add your credentials to `.kiro/settings/mcp.json`:
+Checkout the project add your credentials to `.kiro/settings/mcp.json`:
 
 ```json
 {
