@@ -28,6 +28,9 @@ coverage/
 *.sublime-workspace
 *.sublime-project
 
+# Kiro settings (contains sensitive data like OAuth tokens)
+.kiro/
+
 # OS files
 .DS_Store
 Thumbs.db 
