@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  twitch-chat-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: twitch-chat-mcp
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - TWITCH_CLIENT_ID=${TWITCH_CLIENT_ID}
+      - TWITCH_OAUTH_TOKEN=${TWITCH_OAUTH_TOKEN}
+      - TWITCH_PERMISSION_LEVEL=${TWITCH_PERMISSION_LEVEL:-viewer}
+    volumes:
+      # Mount logs directory for persistence
+      - ./logs:/app/logs
+      # Mount data directory for session persistence
+      - ./data:/app/data
+    networks:
+      - twitch-mcp-network
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('MCP Server is healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  twitch-mcp-network:
+    driver: bridge
+
+# Optional: Add a volume for persistent data
+volumes:
+  twitch-mcp-data:
+    driver: local

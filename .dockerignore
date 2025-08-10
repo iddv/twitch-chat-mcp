@@ -1,0 +1,70 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build outputs
+dist
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# IDE files
+.vscode
+.idea
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+tests/
+*.test.js
+*.test.ts
+
+# Config files
+jest.config.js
+tsconfig.json
+
+# Scripts (except those needed for build)
+scripts/
+
+# Data and cache
+data/
+.cache/
+
+# Temporary files
+tmp/
+temp/

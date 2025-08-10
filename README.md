@@ -56,12 +56,61 @@ A Model Context Protocol (MCP) server that connects MCP Clients, like Claude Des
 
 ## 🚀 Quick Setup for MCP
 
-### Installing via Smithery
+### Installing via Smithery (Local Only)
 
 To install twitch-chat-mcp for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@iddv/twitch-chat-mcp):
 
 ```bash
 npx -y @smithery/cli install @iddv/twitch-chat-mcp --client claude
+```
+
+### 🐳 Local Docker Deployment (Recommended)
+
+The easiest way to run Twitch Chat MCP locally with full isolation and easy management:
+
+#### Quick Start
+```bash
+# 1. Clone and setup
+git clone <your-repo-url>
+cd twitch-chat-mcp
+
+# 2. Run the automated setup script
+npm run docker:setup
+```
+
+The setup script will:
+- Check Docker installation
+- Create `.env` file from template
+- Guide you through getting Twitch credentials
+- Build and start the Docker container
+- Provide connection instructions for your MCP client
+
+#### Manual Docker Setup
+```bash
+# 1. Get Twitch credentials (see below)
+# 2. Create .env file with your credentials
+cp .env.example .env
+# Edit .env with your Twitch Client ID and OAuth Token
+
+# 3. Build and run
+npm run docker:build
+npm run docker:run
+
+# View logs
+npm run docker:logs
+
+# Stop container
+npm run docker:stop
+```
+
+#### Docker Management Commands
+```bash
+npm run docker:setup   # Automated setup script
+npm run docker:build   # Build Docker image
+npm run docker:run     # Start container
+npm run docker:stop    # Stop container
+npm run docker:logs    # View logs
+npm run docker:clean   # Stop and remove image
 ```
 
 ### 1. Get Twitch Credentials

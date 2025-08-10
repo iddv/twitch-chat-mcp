@@ -14,7 +14,13 @@
     "mcp:test": "node scripts/test-mcp-connection.js",
     "mcp:build": "npm run build && echo 'MCP server ready for client connection'",
     "permissions": "npm run build && node scripts/check-permissions.js",
-    "test:permissions": "npm run build && node scripts/test-permissions.js"
+    "test:permissions": "npm run build && node scripts/test-permissions.js",
+    "docker:setup": "./scripts/setup-local-docker.sh",
+    "docker:build": "docker build -t twitch-chat-mcp .",
+    "docker:run": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f twitch-chat-mcp",
+    "docker:clean": "docker-compose down && docker rmi twitch-chat-mcp"
   },
   "keywords": [
     "twitch",

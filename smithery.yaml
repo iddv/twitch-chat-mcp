@@ -5,10 +5,36 @@ startCommand:
   commandFunction:
     # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
     |-
-    (config) => ({ command: 'node', args: ['dist/src/index.js'], env: {} })
+    (config) => ({
+      command: 'node',
+      args: ['dist/src/index.js'],
+      env: {
+        TWITCH_CLIENT_ID: config.TWITCH_CLIENT_ID,
+        TWITCH_OAUTH_TOKEN: config.TWITCH_OAUTH_TOKEN,
+        TWITCH_PERMISSION_LEVEL: config.TWITCH_PERMISSION_LEVEL || 'viewer',
+        NODE_ENV: 'production'
+      }
+    })
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
-    default: {}
-    description: No configuration required for Twitch Chat MCP server
-  exampleConfig: {}
+    properties:
+      TWITCH_CLIENT_ID:
+        type: string
+        description: Your Twitch Client ID from https://twitchtokengenerator.com/
+      TWITCH_OAUTH_TOKEN:
+        type: string
+        description: Your Twitch OAuth Token (include 'oauth:' prefix)
+      TWITCH_PERMISSION_LEVEL:
+        type: string
+        enum: ["viewer", "chatbot", "moderator", "admin"]
+        default: "viewer"
+        description: Permission level for MCP tools (viewer, chatbot, moderator, admin)
+    required:
+      - TWITCH_CLIENT_ID
+      - TWITCH_OAUTH_TOKEN
+    description: Configuration for Twitch Chat MCP server
+  exampleConfig:
+    TWITCH_CLIENT_ID: "your_client_id_here"
+    TWITCH_OAUTH_TOKEN: "oauth:your_token_here"
+    TWITCH_PERMISSION_LEVEL: "chatbot"
