@@ -54,9 +54,9 @@ tests/
 *.test.js
 *.test.ts
 
-# Config files
+# Config files (keep tsconfig.json for build)
 jest.config.js
-tsconfig.json
+# tsconfig.json - NEEDED FOR BUILD, DO NOT EXCLUDE
 
 # Scripts (except those needed for build)
 scripts/

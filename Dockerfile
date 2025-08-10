@@ -1,29 +1,23 @@
-# Multi-stage build for efficient local deployment
-FROM node:lts-alpine AS builder
+# Simple, robust Dockerfile for Smithery deployment
+FROM node:lts-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json tsconfig.json ./
+# Copy package files first for better caching
+COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production --ignore-scripts
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci --ignore-scripts
 
-# Copy source code
+# Copy TypeScript config and source code
+COPY tsconfig.json ./
 COPY src/ ./src/
 
 # Build the project
 RUN npm run build
 
-# Production stage
-FROM node:lts-alpine AS production
-
-WORKDIR /app
-
-# Copy built application and dependencies
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
+# Remove dev dependencies to reduce image size
+RUN npm prune --omit=dev
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
