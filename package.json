@@ -12,7 +12,9 @@
     "setup": "node scripts/setup-env.js",
     "mcp:start": "node scripts/start-mcp-server.js",
     "mcp:test": "node scripts/test-mcp-connection.js",
-    "mcp:build": "npm run build && echo 'MCP server ready for client connection'"
+    "mcp:build": "npm run build && echo 'MCP server ready for client connection'",
+    "permissions": "npm run build && node scripts/check-permissions.js",
+    "test:permissions": "npm run build && node scripts/test-permissions.js"
   },
   "keywords": [
     "twitch",

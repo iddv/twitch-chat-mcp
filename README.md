@@ -3,6 +3,16 @@
 
 A Model Context Protocol (MCP) server that connects MCP Clients, like Claude Desktop, Amazon Q CLI or Stands agent with Twitch chat, allowing the agent to interact with Twitch chat.
 
+## ✨ Key Features
+
+- **🔐 Permission-Based Access** - 4 permission levels (viewer, chatbot, moderator, admin) with automatic tool filtering
+- **💬 Real-time Chat Monitoring** - Read live chat messages with AI-powered analysis
+- **📊 Stream Information** - Get live viewer counts, game titles, and stream status
+- **🤖 Command Detection** - Automatically detect and respond to chat commands
+- **💾 Persistent Sessions** - Resume monitoring across server restarts
+- **🔑 OAuth Authentication** - Secure Twitch API integration with scope validation
+- **🔌 MCP Compliant** - Full protocol support for Claude Desktop and Kiro
+
 ## Available Tools
 
 ### 🎮 Stream Information & Monitoring
@@ -63,9 +73,14 @@ npx -y @smithery/cli install @iddv/twitch-chat-mcp --client claude
    - Copy `Client ID` and replace `your_client_id_here` below
    - Copy `Access Token` and replace `TWITCH_OAUTH_TOKEN` below
 
-### 2. Configure MCP Server
+### 2. Choose Permission Level & Configure MCP
 
-Checkout the project add your credentials to `.kiro/settings/mcp.json`:
+**Check Available Permission Levels**:
+```bash
+npm run permissions  # See all levels and required scopes
+```
+
+**Configure MCP Server** in `.kiro/settings/mcp.json`:
 
 ```json
 {
@@ -74,10 +89,9 @@ Checkout the project add your credentials to `.kiro/settings/mcp.json`:
       "command": "node",
       "args": ["/absolute/path/to/twitch-chat-mcp/dist/src/index.js"],
       "env": {
-        "NODE_ENV": "production",
-        "LOG_LEVEL": "info",
         "TWITCH_CLIENT_ID": "your_client_id_here",
-        "TWITCH_OAUTH_TOKEN": "oauth:your_token_here"
+        "TWITCH_OAUTH_TOKEN": "oauth:your_token_here",
+        "TWITCH_PERMISSION_LEVEL": "chatbot"
       },
       "disabled": false,
       "autoApprove": [
@@ -90,6 +104,12 @@ Checkout the project add your credentials to `.kiro/settings/mcp.json`:
   }
 }
 ```
+
+**Permission Levels**:
+- `viewer` - Read-only stream info (no scopes needed)
+- `chatbot` - Chat interaction (requires: `chat:read+chat:edit`)
+- `moderator` - Moderation tools (requires: `chat:read+chat:edit+channel:moderate+moderator:manage:chat_messages`)
+- `admin` - Full access (requires: all above + `channel:read:subscriptions+user:read:follows`)
 
 ## Contribution
 

@@ -1,3 +1,23 @@
+/**
+ * TWITCH MCP TOOLS - USAGE GUIDE (RFC 2119 Compliant)
+ * 
+ * 🎯 "What's happening on X channel?" → REQUIRED FLOW:
+ * 1. get_stream_info_persistent (MUST be called FIRST - gets live status, game, viewers)
+ * 2. observe_twitch_chat_streaming (MAY be used if stream is live and chat analysis needed)
+ * 3. get_channel_info_persistent (MAY be used for additional channel context)
+ * 
+ * TOOL CATEGORIES:
+ * 📊 Stream Information: get_stream_info_persistent, get_channel_info_persistent
+ * 💬 Chat Interaction: observe_twitch_chat_streaming, send_twitch_message_with_confirmation
+ * 🤖 Bot Functionality: detect_chat_commands
+ * 🔄 Background Monitoring: start_stream_monitoring, monitor_stream_persistent, get_monitoring_status
+ * 📹 Data Collection: start_chat_recording, stop_chat_recording, start_chat_analytics
+ * 
+ * STANDARDIZED OUTPUT: All tools return {success: boolean, data?: any, error?: ErrorResponse, timestamp: string}
+ * ERROR HANDLING: Centralized error codes with suggested recovery actions. Check error.suggestedAction.
+ * RATE LIMITS: Respect API limits. Tools include rateLimit metadata when available.
+ */
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { 
   CallToolRequestSchema,
@@ -25,8 +45,29 @@ import {
   createPersistentChatHistory,
   startAnalyticsProcessing
 } from './chatResources';
+import { 
+  getAllowedTools, 
+  isToolAllowed, 
+  getCurrentPermissionConfig,
+  getPermissionLevel 
+} from '../types/permissions';
 
 const logger = setupLogger();
+
+/**
+ * Get the minimum required permission level for a tool
+ */
+function getRequiredPermissionForTool(toolName: string): string | null {
+  const { PERMISSION_CONFIGS } = require('../types/permissions');
+  
+  for (const [level, config] of Object.entries(PERMISSION_CONFIGS)) {
+    const permConfig = config as any;
+    if (permConfig.allowedTools && permConfig.allowedTools.includes(toolName)) {
+      return level;
+    }
+  }
+  return null;
+}
 
 /**
  * Setup MCP tools for stream and chat management
@@ -34,10 +75,20 @@ const logger = setupLogger();
 export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClient | null, twitchClient: TwitchClient | null = null) {
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const tools = [
+    const permissionConfig = getCurrentPermissionConfig();
+    const allowedTools = getAllowedTools();
+    
+    logger.info(`Loading tools for permission level: ${permissionConfig.level}`, {
+      level: permissionConfig.level,
+      description: permissionConfig.description,
+      requiredScopes: permissionConfig.requiredScopes,
+      toolCount: allowedTools.length
+    });
+    
+    const allTools = [
       {
         name: "start_stream_monitoring",
-        description: "Start real-time monitoring of a Twitch stream with automatic updates",
+        description: "🔄 **BACKGROUND MONITORING** - Use for continuous long-term tracking of stream status changes. MUST NOT be used for immediate status queries. Use get_stream_info_persistent instead.\n\nExample:\n  Input: start_stream_monitoring(channelName=\"shroud\", updateIntervalMs=30000)\n  Output: {\"sessionId\": \"monitor_123\", \"message\": \"Started monitoring\"}\n\nErrors:\n  - \"MonitoringAlreadyActiveError\": Monitoring already running for this channel.\n  - \"InvalidIntervalError\": updateIntervalMs MUST be >= 5000 (5 seconds).",
         inputSchema: {
           type: "object",
           properties: {
@@ -84,7 +135,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "get_monitoring_status",
-        description: "Get the current status of all stream monitoring sessions",
+        description: "📊 **SYSTEM STATUS** - Check active monitoring sessions. Use to debug or manage existing monitoring, NOT for stream info.\n\nExample:\n  Input: get_monitoring_status()\n  Output: {\"activeSessions\": 2, \"totalCacheKeys\": 15, \"persistentLinks\": 3}\n\nUse Case: When you need to see what background monitoring is running or troubleshoot system state.",
         inputSchema: {
           type: "object",
           properties: {},
@@ -93,7 +144,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "start_chat_recording",
-        description: "Start recording chat messages for a channel with persistent storage",
+        description: "📹 BACKGROUND RECORDING: Start persistent chat recording for later analysis. Use for long-term data collection, not immediate viewing",
         inputSchema: {
           type: "object",
           properties: {
@@ -170,7 +221,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "send_twitch_message_with_confirmation",
-        description: "Send a message to Twitch chat with user confirmation via elicitation",
+        description: "📤 **SEND MESSAGE** - Requires explicit user confirmation before sending. SHOULD ONLY be used when directed to send a message. Do NOT use for other interactions.\n\nExample:\n  Input: send_twitch_message_with_confirmation(channel=\"shroud\", message=\"Hello chat!\")\n  Output: {\"success\": true, \"message\": \"Message sent\", \"confirmed\": true}\n\nParameters:\n  - message (string, REQUIRED): Max 500 characters. MUST NOT contain harmful content.\n  - channel (string, REQUIRED): Target channel name.\n\nErrors:\n  - \"MessageTooLongError\": Message exceeds 500 characters.\n  - \"ChatRestrictedError\": User lacks permission to send messages.",
         inputSchema: {
           type: "object",
           properties: {
@@ -193,7 +244,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "observe_twitch_chat_streaming",
-        description: "Observe Twitch chat with real-time progress streaming and resumability",
+        description: "💬 **CHAT ANALYSIS** - Precondition: get_stream_info_persistent MUST confirm stream is live. Use to analyze live chat messages for specified duration. Do NOT use for stream status.\n\nExample:\n  Input: observe_twitch_chat_streaming(channel=\"shroud\", duration=30000)\n  Output: {\"success\": true, \"data\": {\"messages\": [{\"username\": \"viewer1\", \"message\": \"nice shot!\", \"timestamp\": \"2025-08-09T14:30:15Z\", \"badges\": [\"subscriber\"]}], \"totalMessages\": 1, \"sessionId\": \"chat_obs_123\"}, \"timestamp\": \"2025-08-09T14:30:30Z\"}\n\nErrors:\n  - \"ChannelOfflineError\": Stream went offline during observation. Check status with get_stream_info_persistent.\n  - \"ChatUnavailableError\": Chat is in subscriber-only or followers-only mode.",
         inputSchema: {
           type: "object",
           properties: {
@@ -221,7 +272,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "detect_chat_commands",
-        description: "Detect and analyze chat commands with AI-powered response generation",
+        description: "🤖 **COMMAND DETECTION** - Monitor chat for bot commands (e.g., !help, !uptime). Use for bot functionality, NOT general chat observation.\n\nExample:\n  Input: detect_chat_commands(channel=\"shroud\", commandPrefix=\"!\", duration=60000)\n  Output: {\"commands_detected\": [{\"command\": \"!uptime\", \"user\": \"viewer1\", \"timestamp\": \"...\"}]}\n\nParameters:\n  - commandPrefix (string): Default \"!\". Commands starting with this prefix.\n  - duration (number): Monitoring duration in milliseconds. Default 300000 (5 minutes).\n\nErrors:\n  - \"NoCommandsDetectedError\": No commands found during monitoring period.",
         inputSchema: {
           type: "object",
           properties: {
@@ -286,7 +337,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "get_stream_info_persistent",
-        description: "Get stream information with resource links for continuous monitoring",
+        description: "🎯 **PRIMARY** - MUST be called FIRST when asked about a channel's current state. Returns live/offline status, game, viewer count. Do NOT use for long-term monitoring or chat analysis.\n\nExample:\n  Input: get_stream_info_persistent(channel=\"shroud\")\n  Output: {\"success\": true, \"data\": {\"isLive\": true, \"gameName\": \"Counter-Strike 2\", \"viewerCount\": 15420}, \"timestamp\": \"2025-08-09T14:30:00Z\"}\n\nErrors:\n  - \"ChannelNotFoundError\": Channel does not exist. Verify channel name spelling.\n  - \"APIRateLimitError\": Too many requests. Wait 60 seconds and retry.",
         inputSchema: {
           type: "object",
           properties: {
@@ -310,7 +361,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "get_channel_info_persistent",
-        description: "Get channel information with durable caching and progress updates",
+        description: "📋 **SUPPLEMENTARY** - MAY be used AFTER get_stream_info_persistent for additional channel details (followers, description). Do NOT use as primary stream status source.\n\nExample:\n  Input: get_channel_info_persistent(channel=\"shroud\")\n  Output: {\"success\": true, \"data\": {\"displayName\": \"shroud\", \"description\": \"Professional gamer and content creator\", \"followerCount\": 8900000, \"createdAt\": \"2011-06-02T20:04:03Z\"}, \"timestamp\": \"2025-08-09T14:30:00Z\"}\n\nErrors:\n  - \"ChannelNotFoundError\": Channel does not exist.\n  - \"InsufficientPermissionsError\": Token lacks required scopes for follower data.",
         inputSchema: {
           type: "object",
           properties: {
@@ -377,7 +428,7 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       },
       {
         name: "monitor_stream_persistent",
-        description: "Create persistent monitoring tools that survive server restarts",
+        description: "🔄 ADVANCED MONITORING: Set up persistent monitoring with notifications. Use for complex monitoring setups, not simple status checks",
         inputSchema: {
           type: "object",
           properties: {
@@ -427,12 +478,31 @@ export function setupStreamTools(server: Server, twitchAPIClient: TwitchAPIClien
       }
     ];
 
+    // Filter tools based on permission level
+    const tools = allTools.filter(tool => allowedTools.includes(tool.name));
+    
+    logger.info(`Filtered tools for permission level ${permissionConfig.level}`, {
+      totalTools: allTools.length,
+      allowedTools: tools.length,
+      filteredOut: allTools.length - tools.length
+    });
+
     return { tools };
   });
 
   // Handle tool calls
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+
+    // Check if tool is allowed for current permission level
+    if (!isToolAllowed(name)) {
+      const permissionConfig = getCurrentPermissionConfig();
+      throw new Error(
+        `Tool '${name}' is not available for permission level '${permissionConfig.level}'. ` +
+        `Required level: ${getRequiredPermissionForTool(name) || 'unknown'}. ` +
+        `Current scopes: [${permissionConfig.requiredScopes.join(', ')}]`
+      );
+    }
 
     try {
       switch (name) {
