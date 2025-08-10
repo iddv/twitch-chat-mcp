@@ -1,38 +1,31 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config
-
 startCommand:
   type: stdio
-  commandFunction:
-    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
-    |-
-    (config) => ({
-      command: 'node',
-      args: ['dist/src/index.js'],
-      env: {
-        TWITCH_CLIENT_ID: config.TWITCH_CLIENT_ID || '',
-        TWITCH_OAUTH_TOKEN: config.TWITCH_OAUTH_TOKEN || '',
-        TWITCH_PERMISSION_LEVEL: config.TWITCH_PERMISSION_LEVEL || 'viewer',
-        NODE_ENV: 'production'
-      }
-    })
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
     properties:
       TWITCH_CLIENT_ID:
         type: string
-        description: Your Twitch Client ID from https://twitchtokengenerator.com/ (optional for tool discovery)
+        description: Your Twitch Client ID from https://twitchtokengenerator.com/
       TWITCH_OAUTH_TOKEN:
         type: string
-        description: Your Twitch OAuth Token (include 'oauth:' prefix) (optional for tool discovery)
+        description: Your Twitch OAuth Token (include 'oauth:' prefix)
       TWITCH_PERMISSION_LEVEL:
         type: string
         enum: ["viewer", "chatbot", "moderator", "admin"]
         default: "viewer"
-        description: Permission level for MCP tools (viewer, chatbot, moderator, admin)
-    # Remove required fields to allow tool discovery without credentials
-    description: Configuration for Twitch Chat MCP server. Credentials are optional for tool discovery but required for actual functionality.
-  exampleConfig:
-    TWITCH_CLIENT_ID: "your_client_id_here"
-    TWITCH_OAUTH_TOKEN: "oauth:your_token_here"
-    TWITCH_PERMISSION_LEVEL: "chatbot"
+        description: Permission level for MCP tools
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({ 
+      command: 'node', 
+      args: ['dist/src/index.js'],
+      env: {
+        TWITCH_CLIENT_ID: config.TWITCH_CLIENT_ID || '',
+        TWITCH_OAUTH_TOKEN: config.TWITCH_OAUTH_TOKEN || '',
+        TWITCH_PERMISSION_LEVEL: config.TWITCH_PERMISSION_LEVEL || 'viewer'
+      }
+    })
+  exampleConfig: {}
