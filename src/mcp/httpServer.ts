@@ -13,6 +13,7 @@ import cors from 'cors';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { setupLogger } from '../utils/logger';
 import { parseQueryConfig, ParsedConfig } from './configParser';
+import oauthRoutes from '../auth/oauthRoutes';
 
 const logger = setupLogger();
 
@@ -92,9 +93,16 @@ export function createHttpServer(mcpServer: Server, options: HttpServerOptions =
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
-      transport: 'http'
+      transport: 'http',
+      oauth: {
+        configured: !!(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET),
+        endpoints: ['/auth/twitch', '/auth/callback', '/auth/status']
+      }
     });
   });
+
+  // OAuth routes
+  app.use('/auth', oauthRoutes);
   
   // MCP endpoint handlers
   app.get('/mcp', handleMcpGet);

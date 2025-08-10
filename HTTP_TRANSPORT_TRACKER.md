@@ -32,7 +32,17 @@
 
 **Completed**: HTTP server successfully responds to /mcp endpoint with proper MCP protocol responses. Query parameter parsing works correctly for Smithery configuration format.
 
-#### 🚧 Step 4: Session Management & Credential Handling
+#### ✅ Step 4A: OAuth 2.0 Integration
+- [x] Create OAuth type definitions
+- [x] Implement Twitch OAuth 2.0 flow
+- [x] Add OAuth routes to HTTP server
+- [x] Create JWT service for sessions
+- [x] Add graceful OAuth configuration handling
+- [x] Test OAuth endpoints
+
+**Completed**: OAuth 2.0 authorization code grant flow implemented with proper security practices. Server gracefully handles missing credentials.
+
+#### 🚧 Step 4B: AWS KMS Encryption
 - [ ] Design session storage
 - [ ] Implement session ID generation
 - [ ] Create credential encryption
@@ -69,9 +79,9 @@
 
 ## Current Focus
 
-**Working on**: Step 4 - Session Management & Credential Handling  
-**Next milestone**: Session isolation and per-user credential storage  
-**Blockers**: None currently
+**Working on**: Step 4B - AWS KMS Encryption  
+**Next milestone**: Secure credential storage with KMS encryption  
+**Blockers**: Need AWS KMS key for testing (can be created)
 
 ## Key Files Being Modified
 
