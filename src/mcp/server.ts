@@ -29,23 +29,12 @@ export async function createMCPServer() {
     }
   );
 
-  // Initialize Twitch integration
+  // Initialize without Twitch integration for fast startup
+  // Twitch integration will be initialized lazily when first needed
   let twitchAPIClient = null;
   let twitchClient = null;
-  const twitchToken = process.env.TWITCH_OAUTH_TOKEN;
   
-  if (twitchToken) {
-    try {
-      twitchClient = await setupTwitchIntegration();
-      twitchAPIClient = twitchClient.apiClient;
-      logger.info('MCP server configured successfully with Twitch integration');
-    } catch (error) {
-      logger.error('Failed to configure Twitch integration', { error });
-      // Continue without Twitch integration
-    }
-  } else {
-    logger.info('MCP server started without Twitch integration - auth required');
-  }
+  logger.info('MCP server starting with lazy Twitch integration');
 
   // Setup MCP components
   setupStreamResources(server, twitchAPIClient);
