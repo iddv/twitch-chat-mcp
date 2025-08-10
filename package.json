@@ -32,6 +32,7 @@
   "license": "MIT",
   "dependencies": {
     "@aws-crypto/client-node": "^4.2.1",
+    "@aws-sdk/client-kms": "^3.864.0",
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",

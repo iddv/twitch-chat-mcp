@@ -243,16 +243,15 @@ export function auditLog(action: string) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const startTime = Date.now();
 
-    // Log request
-    logger.info('API request started', {
-      action,
-      userId: req.user?.userId,
-      username: req.user?.username,
+    // Log request using enhanced audit logging
+    logger.addAuditLog(action, req.user?.userId || 'anonymous', {
       sessionId: req.sessionId,
       ip: req.ip || 'unknown',
       userAgent: req.headers['user-agent'] || 'unknown',
       method: req.method,
-      path: req.path
+      path: req.path,
+      username: req.user?.username,
+      permissionLevel: req.user?.permissionLevel
     });
 
     // Override res.json to log response
@@ -260,14 +259,26 @@ export function auditLog(action: string) {
     res.json = function(body: any) {
       const duration = Date.now() - startTime;
       
-      logger.info('API request completed', {
-        action,
-        userId: req.user?.userId,
+      // Log completion with audit logging
+      logger.addAuditLog(`${action}_completed`, req.user?.userId || 'anonymous', {
         sessionId: req.sessionId,
         statusCode: res.statusCode,
         duration,
-        success: res.statusCode < 400
+        success: res.statusCode < 400,
+        action
       });
+
+      // Log security events for failed requests
+      if (res.statusCode >= 400) {
+        logger.addSecurityEvent('api_request_failed', {
+          action,
+          userId: req.user?.userId,
+          statusCode: res.statusCode,
+          ip: req.ip,
+          userAgent: req.headers['user-agent'],
+          path: req.path
+        });
+      }
 
       return originalJson.call(this, body);
     };
