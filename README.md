@@ -56,7 +56,7 @@ A Model Context Protocol (MCP) server that connects MCP Clients, like Claude Des
 
 ## 🚀 Quick Setup for MCP
 
-### Installing via Smithery (Local Only)
+### Installing via Smithery (Recommended)
 
 To install twitch-chat-mcp for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@iddv/twitch-chat-mcp):
 
@@ -64,60 +64,22 @@ To install twitch-chat-mcp for Claude Desktop automatically via [Smithery](https
 npx -y @smithery/cli install @iddv/twitch-chat-mcp --client claude
 ```
 
-### 🔧 Production Deployment (AWS)
+### 🔧 Local Development Setup
 
-**Quick Setup:**
+For local development and testing:
+
 ```bash
-# 1. Setup Twitch OAuth credentials
-./scripts/setup-twitch.sh
-
-# 2. Deploy to AWS (requires AWS CLI configured)
-export KEY_PAIR_NAME=your-ec2-key-pair
-./scripts/deploy.sh deploy
-```
-
-**What gets deployed:**
-- ✅ **Enterprise Security**: KMS encryption, IAM roles, secure Parameter Store
-- ✅ **Auto Scaling**: Load balancer with health checks and auto scaling
-- ✅ **Monitoring**: CloudWatch logs and comprehensive health endpoints
-- ✅ **OAuth 2.0**: Secure Twitch authentication with JWT sessions
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide.
-
-### 🐳 Local Docker Deployment (Recommended)
-
-The easiest way to run Twitch Chat MCP locally with full isolation and easy management:
-
-#### Quick Start
-```bash
-# 1. Clone and setup
+# 1. Clone repository
 git clone <your-repo-url>
 cd twitch-chat-mcp
 
-# 2. Run the automated setup script
+# 2. Setup Twitch OAuth credentials
 ./scripts/setup-twitch.sh
 
-# 3. Start with Docker
-cd infrastructure/docker
-docker-compose up -d
-```
-
-#### Manual Docker Setup
-```bash
-# 1. Get Twitch credentials (see below)
-# 2. Create .env file with your credentials
-cp .env.example .env
-# Edit .env with your Twitch Client ID and OAuth Token
-
-# 3. Build and run
-cd infrastructure/docker
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop container
-docker-compose down
+# 3. Install and run
+npm install
+npm run build
+npm start
 ```
 
 ### 1. Get Twitch Credentials

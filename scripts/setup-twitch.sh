@@ -56,14 +56,8 @@ fi
 
 # Get deployment configuration
 echo ""
-echo "🌐 Deployment Configuration:"
-read -p "Environment (dev/staging/prod) [dev]: " ENVIRONMENT
-ENVIRONMENT=${ENVIRONMENT:-dev}
-
-read -p "AWS Region [us-east-1]: " AWS_REGION
-AWS_REGION=${AWS_REGION:-us-east-1}
-
-read -p "Domain name (optional): " DOMAIN_NAME
+echo "🌐 Configuration:"
+read -p "Domain name (leave blank for localhost): " DOMAIN_NAME
 
 # Set redirect URI
 if [ -n "$DOMAIN_NAME" ]; then
@@ -75,8 +69,6 @@ fi
 echo ""
 echo "📝 Configuration Summary:"
 echo "========================"
-echo "Environment: $ENVIRONMENT"
-echo "AWS Region: $AWS_REGION"
 echo "Client ID: ${TWITCH_CLIENT_ID:0:8}..."
 echo "Redirect URI: $REDIRECT_URI"
 echo ""
@@ -102,54 +94,9 @@ JWT_SECRET=$(openssl rand -hex 32)
 PORT=3000
 MCP_TRANSPORT=http
 NODE_ENV=development
-
-# AWS Configuration (optional for local development)
-AWS_REGION=$AWS_REGION
-# KMS_KEY_ID=your-kms-key-id
-# CLOUDWATCH_LOG_GROUP=/aws/mcp/twitch-chat-mcp-$ENVIRONMENT
 EOF
 
 log_success ".env file created"
-
-# Update Parameter Store if AWS CLI is available
-if command -v aws &> /dev/null && aws sts get-caller-identity &> /dev/null; then
-    log_info "Updating AWS Parameter Store..."
-    
-    PROJECT_NAME="twitch-chat-mcp"
-    
-    # Update parameters
-    aws ssm put-parameter \
-        --name "/${PROJECT_NAME}/${ENVIRONMENT}/twitch/client-id" \
-        --value "$TWITCH_CLIENT_ID" \
-        --type "String" \
-        --overwrite \
-        --region "$AWS_REGION" \
-        --description "Twitch OAuth Client ID" || log_warning "Failed to update client ID parameter"
-    
-    aws ssm put-parameter \
-        --name "/${PROJECT_NAME}/${ENVIRONMENT}/twitch/client-secret" \
-        --value "$TWITCH_CLIENT_SECRET" \
-        --type "SecureString" \
-        --overwrite \
-        --region "$AWS_REGION" \
-        --description "Twitch OAuth Client Secret" || log_warning "Failed to update client secret parameter"
-    
-    log_success "Parameter Store updated"
-else
-    log_warning "AWS CLI not configured. Parameter Store not updated."
-fi
-
-# Create Docker environment file
-log_info "Creating Docker environment file..."
-cat > infrastructure/docker/.env << EOF
-TWITCH_CLIENT_ID=$TWITCH_CLIENT_ID
-TWITCH_CLIENT_SECRET=$TWITCH_CLIENT_SECRET
-TWITCH_REDIRECT_URI=$REDIRECT_URI
-JWT_SECRET=$(openssl rand -hex 32)
-AWS_REGION=$AWS_REGION
-EOF
-
-log_success "Docker environment file created"
 
 # Set up Twitch Developer Application
 echo ""
@@ -165,13 +112,6 @@ echo "2. Test your setup:"
 echo "   Local development:"
 echo "     npm install && npm run build && npm start"
 echo "     Visit: http://localhost:3000/health"
-echo ""
-echo "   Docker:"
-echo "     cd infrastructure/docker && docker-compose up"
-echo ""
-echo "   AWS Deployment:"
-echo "     export KEY_PAIR_NAME=your-ec2-key-pair"
-echo "     ./scripts/deploy.sh deploy"
 echo ""
 echo "3. OAuth Flow Test:"
 echo "   Visit: $REDIRECT_URI/../auth/twitch?permission_level=chatbot"

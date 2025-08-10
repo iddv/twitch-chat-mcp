@@ -1,66 +1,42 @@
 /**
- * Encrypted Credential Store
+ * Credential Store
  * 
- * Handles secure storage and retrieval of user credentials using KMS encryption
+ * Handles secure storage and retrieval of user credentials
  */
 
-import { getKMSService } from '../encryption/kmsService';
 import { setupLogger } from '../utils/logger';
 import { StoredCredentials } from '../types/oauth';
 
 const logger = setupLogger();
 
 export interface CredentialStoreOptions {
-  useKMS?: boolean;
   fallbackToMemory?: boolean;
 }
 
 /**
- * Encrypted credential store with KMS integration
+ * Credential store with memory storage
  */
 export class CredentialStore {
-  private kmsService: any = null; // Lazy-loaded
   private memoryStore: Map<string, StoredCredentials> = new Map();
   private options: CredentialStoreOptions;
 
   constructor(options: CredentialStoreOptions = {}) {
     this.options = {
-      useKMS: true,
       fallbackToMemory: true,
       ...options
     };
 
     logger.info('Credential store initialized', {
-      useKMS: this.options.useKMS,
       fallbackToMemory: this.options.fallbackToMemory
     });
   }
 
   /**
-   * Get KMS service (lazy-loaded)
-   */
-  private getKMSService() {
-    if (!this.kmsService && this.options.useKMS) {
-      try {
-        this.kmsService = getKMSService();
-      } catch (error) {
-        logger.warn('KMS service not available', { error: error instanceof Error ? error.message : 'Unknown error' });
-        this.kmsService = null;
-      }
-    }
-    return this.kmsService;
-  }
-
-  /**
-   * Store encrypted credentials for a user
+   * Store credentials for a user
    */
   async storeCredentials(userId: string, credentials: StoredCredentials): Promise<void> {
     try {
-      if (this.options.useKMS) {
-        await this.storeWithKMS(userId, credentials);
-      } else {
-        await this.storeInMemory(userId, credentials);
-      }
+      this.memoryStore.set(userId, credentials);
 
       logger.info('Credentials stored successfully', {
         userId,
@@ -70,31 +46,16 @@ export class CredentialStore {
       });
     } catch (error) {
       logger.error('Failed to store credentials', { error, userId });
-      
-      if (this.options.fallbackToMemory && this.options.useKMS) {
-        logger.warn('Falling back to memory storage', { userId });
-        await this.storeInMemory(userId, credentials);
-      } else {
-        throw error;
-      }
+      throw error;
     }
   }
 
   /**
-   * Retrieve and decrypt credentials for a user
+   * Retrieve credentials for a user
    */
   async getCredentials(userId: string): Promise<StoredCredentials | null> {
     try {
-      let credentials: StoredCredentials | null = null;
-
-      if (this.options.useKMS) {
-        credentials = await this.getFromKMS(userId);
-      }
-
-      // Fallback to memory if KMS fails or not configured
-      if (!credentials && this.options.fallbackToMemory) {
-        credentials = this.memoryStore.get(userId) || null;
-      }
+      const credentials = this.memoryStore.get(userId) || null;
 
       if (credentials) {
         // Check if credentials are expired
@@ -170,74 +131,11 @@ export class CredentialStore {
    */
   async listUsers(): Promise<string[]> {
     try {
-      // For now, return memory store keys
-      // TODO: Query database when implemented
       return Array.from(this.memoryStore.keys());
     } catch (error) {
       logger.error('Failed to list users', { error });
       return [];
     }
-  }
-
-  /**
-   * Store credentials using KMS encryption
-   */
-  private async storeWithKMS(userId: string, credentials: StoredCredentials): Promise<void> {
-    try {
-      // Create encryption context for additional security
-      const encryptionContext = {
-        userId,
-        purpose: 'twitch-credentials',
-        timestamp: Date.now().toString()
-      };
-
-      // Encrypt the credentials
-      const kmsService = this.getKMSService();
-      if (!kmsService) {
-        throw new Error('KMS service not available');
-      }
-      
-      const encryptedData = await kmsService.encryptJSON(credentials, encryptionContext);
-
-      // TODO: Store in database
-      // For now, store in memory with encrypted data
-      this.memoryStore.set(userId, {
-        ...credentials,
-        // Mark as encrypted for identification
-        accessToken: `encrypted:${encryptedData.substring(0, 50)}...`,
-        refreshToken: 'encrypted'
-      });
-
-      logger.debug('Credentials encrypted with KMS', { 
-        userId, 
-        encryptedLength: encryptedData.length 
-      });
-    } catch (error) {
-      logger.error('KMS encryption failed', { error, userId });
-      throw new Error('Failed to encrypt credentials');
-    }
-  }
-
-  /**
-   * Retrieve credentials from KMS encryption
-   */
-  private async getFromKMS(userId: string): Promise<StoredCredentials | null> {
-    try {
-      // TODO: Retrieve encrypted data from database
-      // For now, this is a placeholder
-      return null;
-    } catch (error) {
-      logger.error('KMS decryption failed', { error, userId });
-      return null;
-    }
-  }
-
-  /**
-   * Store credentials in memory (fallback/development)
-   */
-  private async storeInMemory(userId: string, credentials: StoredCredentials): Promise<void> {
-    this.memoryStore.set(userId, credentials);
-    logger.debug('Credentials stored in memory', { userId });
   }
 
   /**
@@ -272,33 +170,11 @@ export class CredentialStore {
   }
 
   /**
-   * Test KMS connectivity
-   */
-  async testKMSConnection(): Promise<boolean> {
-    try {
-      if (!this.options.useKMS) {
-        return false;
-      }
-
-      const kmsService = this.getKMSService();
-      if (!kmsService) {
-        return false;
-      }
-
-      return await kmsService.testConnection();
-    } catch (error) {
-      logger.error('KMS connection test failed', { error });
-      return false;
-    }
-  }
-
-  /**
    * Get store statistics
    */
-  getStats(): { totalUsers: number; useKMS: boolean; memoryUsers: number } {
+  getStats(): { totalUsers: number; memoryUsers: number } {
     return {
       totalUsers: this.memoryStore.size,
-      useKMS: this.options.useKMS || false,
       memoryUsers: this.memoryStore.size
     };
   }

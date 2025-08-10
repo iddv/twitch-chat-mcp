@@ -38,13 +38,11 @@ export function createHttpServer(mcpServer: Server, options: HttpServerOptions =
   
   // Initialize credential store with cleanup timer
   const credentialStore = initializeCredentialStore({
-    useKMS: !!process.env.KMS_KEY_ID,
     fallbackToMemory: true
   });
   
   logger.info('HTTP server initializing', { 
     port, 
-    kmsEnabled: !!process.env.KMS_KEY_ID,
     credentialStore: 'initialized'
   });
   
@@ -102,7 +100,6 @@ export function createHttpServer(mcpServer: Server, options: HttpServerOptions =
   
   // Health check endpoint
   app.get('/health', async (req: Request, res: Response) => {
-    const kmsStatus = await credentialStore.testKMSConnection();
     const storeStats = credentialStore.getStats();
     
     res.json({
@@ -115,8 +112,6 @@ export function createHttpServer(mcpServer: Server, options: HttpServerOptions =
         endpoints: ['/auth/twitch', '/auth/callback', '/auth/status']
       },
       security: {
-        kmsEnabled: !!process.env.KMS_KEY_ID,
-        kmsConnected: kmsStatus,
         jwtEnabled: !!process.env.JWT_SECRET,
         credentialStore: storeStats
       }
