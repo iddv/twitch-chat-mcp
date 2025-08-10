@@ -64,6 +64,26 @@ To install twitch-chat-mcp for Claude Desktop automatically via [Smithery](https
 npx -y @smithery/cli install @iddv/twitch-chat-mcp --client claude
 ```
 
+### 🔧 Production Deployment (AWS)
+
+**Quick Setup:**
+```bash
+# 1. Setup Twitch OAuth credentials
+./scripts/setup-twitch.sh
+
+# 2. Deploy to AWS (requires AWS CLI configured)
+export KEY_PAIR_NAME=your-ec2-key-pair
+./scripts/deploy.sh deploy
+```
+
+**What gets deployed:**
+- ✅ **Enterprise Security**: KMS encryption, IAM roles, secure Parameter Store
+- ✅ **Auto Scaling**: Load balancer with health checks and auto scaling
+- ✅ **Monitoring**: CloudWatch logs and comprehensive health endpoints
+- ✅ **OAuth 2.0**: Secure Twitch authentication with JWT sessions
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide.
+
 ### 🐳 Local Docker Deployment (Recommended)
 
 The easiest way to run Twitch Chat MCP locally with full isolation and easy management:
@@ -75,15 +95,12 @@ git clone <your-repo-url>
 cd twitch-chat-mcp
 
 # 2. Run the automated setup script
-npm run docker:setup
-```
+./scripts/setup-twitch.sh
 
-The setup script will:
-- Check Docker installation
-- Create `.env` file from template
-- Guide you through getting Twitch credentials
-- Build and start the Docker container
-- Provide connection instructions for your MCP client
+# 3. Start with Docker
+cd infrastructure/docker
+docker-compose up -d
+```
 
 #### Manual Docker Setup
 ```bash
@@ -93,24 +110,14 @@ cp .env.example .env
 # Edit .env with your Twitch Client ID and OAuth Token
 
 # 3. Build and run
-npm run docker:build
-npm run docker:run
+cd infrastructure/docker
+docker-compose up -d
 
 # View logs
-npm run docker:logs
+docker-compose logs -f
 
 # Stop container
-npm run docker:stop
-```
-
-#### Docker Management Commands
-```bash
-npm run docker:setup   # Automated setup script
-npm run docker:build   # Build Docker image
-npm run docker:run     # Start container
-npm run docker:stop    # Stop container
-npm run docker:logs    # View logs
-npm run docker:clean   # Stop and remove image
+docker-compose down
 ```
 
 ### 1. Get Twitch Credentials
