@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import { setupLogger } from '../utils/logger';
 import { getJWTService } from './jwtService';
+import { getCredentialStore } from '../storage/credentialStore';
 import { 
   TwitchOAuthConfig, 
   OAuthState, 
@@ -23,6 +24,7 @@ export class OAuthFlow {
   private config: TwitchOAuthConfig;
   private stateStore: Map<string, OAuthState> = new Map();
   private jwtService = getJWTService();
+  private credentialStore = getCredentialStore();
 
   // Twitch OAuth endpoints
   private readonly TWITCH_AUTH_URL = 'https://id.twitch.tv/oauth2/authorize';
@@ -144,7 +146,7 @@ export class OAuthFlow {
       // Get user information
       const userInfo = await this.getUserInfo(tokenResponse.access_token);
       
-      // Store credentials securely (will be implemented in credential store)
+      // Store credentials securely using credential store
       const credentials: StoredCredentials = {
         userId: crypto.createHash('sha256').update(userInfo.id).digest('hex'),
         accessToken: tokenResponse.access_token,
@@ -155,11 +157,14 @@ export class OAuthFlow {
         username: userInfo.login
       };
 
-      // TODO: Store credentials in encrypted database
+      // Store encrypted credentials
+      await this.credentialStore.storeCredentials(credentials.userId, credentials);
+
       logger.info('OAuth callback successful', {
         userId: credentials.userId,
         username: userInfo.login,
-        scopes: tokenResponse.scope.length
+        scopes: tokenResponse.scope.length,
+        expiresAt: credentials.expiresAt
       });
 
       // Create JWT session token
@@ -314,13 +319,18 @@ export class OAuthFlow {
   /**
    * Refresh access token using refresh token
    */
-  async refreshAccessToken(refreshToken: string): Promise<TwitchTokenResponse> {
+  async refreshAccessToken(userId: string): Promise<TwitchTokenResponse> {
     try {
+      const credentials = await this.credentialStore.getCredentials(userId);
+      if (!credentials || !credentials.refreshToken) {
+        throw new Error('No refresh token available for user');
+      }
+
       const params = new URLSearchParams({
         client_id: this.config.clientId,
         client_secret: this.config.clientSecret,
         grant_type: 'refresh_token',
-        refresh_token: refreshToken
+        refresh_token: credentials.refreshToken
       });
 
       const response = await axios.post(this.TWITCH_TOKEN_URL, params, {
@@ -333,14 +343,53 @@ export class OAuthFlow {
         throw new Error(`Token refresh failed: ${response.data.error_description}`);
       }
 
-      logger.debug('Token refresh successful', {
+      // Update stored credentials with new tokens
+      await this.credentialStore.updateCredentials(userId, {
+        accessToken: response.data.access_token,
+        refreshToken: response.data.refresh_token || credentials.refreshToken,
+        expiresAt: new Date(Date.now() + (response.data.expires_in * 1000)),
+        scopes: response.data.scope || credentials.scopes
+      });
+
+      logger.info('Token refresh successful', {
+        userId,
         expiresIn: response.data.expires_in
       });
 
       return response.data;
     } catch (error) {
-      logger.error('Token refresh failed', { error });
+      logger.error('Token refresh failed', { error, userId });
       throw new Error('Failed to refresh access token');
+    }
+  }
+
+  /**
+   * Get valid access token for user (refresh if needed)
+   */
+  async getValidAccessToken(userId: string): Promise<string | null> {
+    try {
+      const credentials = await this.credentialStore.getCredentials(userId);
+      if (!credentials) {
+        return null;
+      }
+
+      // Check if token is expired or will expire soon (5 minutes buffer)
+      const now = new Date();
+      const expiryBuffer = new Date(credentials.expiresAt.getTime() - (5 * 60 * 1000));
+      
+      if (now > expiryBuffer) {
+        logger.info('Access token expired, refreshing', { userId });
+        await this.refreshAccessToken(userId);
+        
+        // Get updated credentials
+        const updatedCredentials = await this.credentialStore.getCredentials(userId);
+        return updatedCredentials?.accessToken || null;
+      }
+
+      return credentials.accessToken;
+    } catch (error) {
+      logger.error('Failed to get valid access token', { error, userId });
+      return null;
     }
   }
 }

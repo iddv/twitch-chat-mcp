@@ -7,6 +7,8 @@
 import { Request, Response, Router } from 'express';
 import { setupLogger } from '../utils/logger';
 import { getOAuthFlow } from './oauthFlow';
+import { authenticateJWT, AuthenticatedRequest, auditLog } from '../middleware/authMiddleware';
+import { getCredentialStore } from '../storage/credentialStore';
 
 const logger = setupLogger();
 const router = Router();
@@ -153,13 +155,31 @@ router.get('/callback', async (req: Request, res: Response) => {
  * Get current user info (requires JWT)
  * GET /auth/me
  */
-router.get('/me', async (req: Request, res: Response) => {
+router.get('/me', authenticateJWT(true), auditLog('get_user_info'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // TODO: Add JWT validation middleware
-    // For now, return placeholder
+    if (!req.user || !req.credentials) {
+      res.status(401).json({
+        error: 'Authentication required'
+      });
+      return;
+    }
+
     res.json({
-      error: 'Not implemented',
-      message: 'JWT validation middleware not yet implemented'
+      success: true,
+      user: {
+        id: req.user.twitchUserId,
+        username: req.user.username,
+        permissionLevel: req.user.permissionLevel,
+        sessionId: req.user.sessionId
+      },
+      credentials: {
+        expiresAt: req.credentials.expiresAt,
+        scopes: req.credentials.scopes
+      },
+      session: {
+        issuedAt: new Date(req.user.iat * 1000),
+        expiresAt: new Date(req.user.exp * 1000)
+      }
     });
   } catch (error) {
     logger.error('Failed to get user info', { error });
@@ -173,10 +193,19 @@ router.get('/me', async (req: Request, res: Response) => {
  * Logout - invalidate session
  * POST /auth/logout
  */
-router.post('/logout', async (req: Request, res: Response) => {
+router.post('/logout', authenticateJWT(false), auditLog('logout'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // TODO: Add JWT validation and session cleanup
-    // For now, return success
+    if (req.user) {
+      const credentialStore = getCredentialStore();
+      await credentialStore.deleteCredentials(req.user.userId);
+      
+      logger.info('User logged out', {
+        userId: req.user.userId,
+        username: req.user.username,
+        sessionId: req.user.sessionId
+      });
+    }
+
     res.json({
       success: true,
       message: 'Logged out successfully'
@@ -193,24 +222,34 @@ router.post('/logout', async (req: Request, res: Response) => {
  * Refresh token endpoint
  * POST /auth/refresh
  */
-router.post('/refresh', async (req: Request, res: Response) => {
+router.post('/refresh', authenticateJWT(true), auditLog('refresh_token'), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      res.status(400).json({
-        error: 'Refresh token required'
+    if (!req.user) {
+      res.status(401).json({
+        error: 'Authentication required'
       });
       return;
     }
 
-    // TODO: Implement token refresh logic
+    const oauthFlow = getOAuthFlowSafe();
+    if (!oauthFlow) {
+      res.status(503).json({
+        error: 'OAuth not configured'
+      });
+      return;
+    }
+
+    // Refresh the access token
+    const tokenResponse = await oauthFlow.refreshAccessToken(req.user.userId);
+    
     res.json({
-      error: 'Not implemented',
-      message: 'Token refresh not yet implemented'
+      success: true,
+      message: 'Token refreshed successfully',
+      expiresIn: tokenResponse.expires_in,
+      expiresAt: new Date(Date.now() + (tokenResponse.expires_in * 1000))
     });
   } catch (error) {
-    logger.error('Token refresh failed', { error });
+    logger.error('Token refresh failed', { error, userId: req.user?.userId });
     res.status(400).json({
       error: 'Token refresh failed',
       message: error instanceof Error ? error.message : 'Unknown error'

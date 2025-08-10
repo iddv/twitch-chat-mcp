@@ -13,6 +13,7 @@ import cors from 'cors';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { setupLogger } from '../utils/logger';
 import { parseQueryConfig, ParsedConfig } from './configParser';
+import { initializeCredentialStore } from '../storage/credentialStore';
 import oauthRoutes from '../auth/oauthRoutes';
 
 const logger = setupLogger();
@@ -34,6 +35,18 @@ export interface McpHttpRequest extends Request {
 export function createHttpServer(mcpServer: Server, options: HttpServerOptions = {}) {
   const app = express();
   const port = options.port || parseInt(process.env.PORT || '3000');
+  
+  // Initialize credential store with cleanup timer
+  const credentialStore = initializeCredentialStore({
+    useKMS: !!process.env.KMS_KEY_ID,
+    fallbackToMemory: true
+  });
+  
+  logger.info('HTTP server initializing', { 
+    port, 
+    kmsEnabled: !!process.env.KMS_KEY_ID,
+    credentialStore: 'initialized'
+  });
   
   // Middleware setup
   app.use(cors({
@@ -88,7 +101,10 @@ export function createHttpServer(mcpServer: Server, options: HttpServerOptions =
   });
   
   // Health check endpoint
-  app.get('/health', (req: Request, res: Response) => {
+  app.get('/health', async (req: Request, res: Response) => {
+    const kmsStatus = await credentialStore.testKMSConnection();
+    const storeStats = credentialStore.getStats();
+    
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -97,6 +113,12 @@ export function createHttpServer(mcpServer: Server, options: HttpServerOptions =
       oauth: {
         configured: !!(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET),
         endpoints: ['/auth/twitch', '/auth/callback', '/auth/status']
+      },
+      security: {
+        kmsEnabled: !!process.env.KMS_KEY_ID,
+        kmsConnected: kmsStatus,
+        jwtEnabled: !!process.env.JWT_SECRET,
+        credentialStore: storeStats
       }
     });
   });
