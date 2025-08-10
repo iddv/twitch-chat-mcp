@@ -1,4 +1,5 @@
 # Twitch Chat MCP Server
+[![smithery badge](https://smithery.ai/badge/@iddv/twitch-chat-mcp)](https://smithery.ai/server/@iddv/twitch-chat-mcp)
 
 A Model Context Protocol (MCP) server that connects MCP Clients, like Claude Desktop, Amazon Q CLI or Stands agent with Twitch chat, allowing the agent to interact with Twitch chat.
 
@@ -44,6 +45,14 @@ A Model Context Protocol (MCP) server that connects MCP Clients, like Claude Des
 **Quick Start**: Follow the setup guide below to get your own Twitch token!
 
 ## 🚀 Quick Setup for MCP
+
+### Installing via Smithery
+
+To install twitch-chat-mcp for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@iddv/twitch-chat-mcp):
+
+```bash
+npx -y @smithery/cli install @iddv/twitch-chat-mcp --client claude
+```
 
 ### 1. Get Twitch Credentials
 1. **Log into Twitch on your browser**: `https://www.twitch.tv`
