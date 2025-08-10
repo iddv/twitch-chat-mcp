@@ -9,8 +9,8 @@ startCommand:
       command: 'node',
       args: ['dist/src/index.js'],
       env: {
-        TWITCH_CLIENT_ID: config.TWITCH_CLIENT_ID,
-        TWITCH_OAUTH_TOKEN: config.TWITCH_OAUTH_TOKEN,
+        TWITCH_CLIENT_ID: config.TWITCH_CLIENT_ID || '',
+        TWITCH_OAUTH_TOKEN: config.TWITCH_OAUTH_TOKEN || '',
         TWITCH_PERMISSION_LEVEL: config.TWITCH_PERMISSION_LEVEL || 'viewer',
         NODE_ENV: 'production'
       }
@@ -21,19 +21,17 @@ startCommand:
     properties:
       TWITCH_CLIENT_ID:
         type: string
-        description: Your Twitch Client ID from https://twitchtokengenerator.com/
+        description: Your Twitch Client ID from https://twitchtokengenerator.com/ (optional for tool discovery)
       TWITCH_OAUTH_TOKEN:
         type: string
-        description: Your Twitch OAuth Token (include 'oauth:' prefix)
+        description: Your Twitch OAuth Token (include 'oauth:' prefix) (optional for tool discovery)
       TWITCH_PERMISSION_LEVEL:
         type: string
         enum: ["viewer", "chatbot", "moderator", "admin"]
         default: "viewer"
         description: Permission level for MCP tools (viewer, chatbot, moderator, admin)
-    required:
-      - TWITCH_CLIENT_ID
-      - TWITCH_OAUTH_TOKEN
-    description: Configuration for Twitch Chat MCP server
+    # Remove required fields to allow tool discovery without credentials
+    description: Configuration for Twitch Chat MCP server. Credentials are optional for tool discovery but required for actual functionality.
   exampleConfig:
     TWITCH_CLIENT_ID: "your_client_id_here"
     TWITCH_OAUTH_TOKEN: "oauth:your_token_here"
